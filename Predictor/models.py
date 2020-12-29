@@ -25,18 +25,18 @@ class ParticleFilter(object):
         X = self.x_prior
         states = X[:2, :]
         params = X[2:, :]
-        
+        print('A1',X[index].A1.shape)
         s_std = std(X[index].A1) 
         
         tmp_ws = as_array([norm.pdf(y, x[0, index], s_std) for x in states.T])
         n_weights = self.weights * tmp_ws
         sum_weights = n_weights.sum()
-    
         if sum_weights != 0:
             n_weights /= sum_weights
             neff = 1.0 / (n_weights ** 2).sum() 
         
-        if sum_weights == 0 or neff < self.num_part/2.0:
+        if sum_weights == 0 or neff < self.num_part/2.0 : 
+            print('index',index,'resamples')
             idx = choice(range(X.shape[1]), X.shape[1], p=self.weights)
             self.weights = tile(as_array(1.0 / self.num_part), self.num_part)
             
@@ -45,15 +45,17 @@ class ParticleFilter(object):
             self.x_post = X
             self.weights = n_weights
 
+        print('weight:',self.weights.shape, 'n_weight',n_weights.sum(), 'curr weight',self.weights.sum())
         p_mean = average(params, axis=1, weights=self.weights).A1
         p_cov = cov(params, aweights=self.weights)
         self.x_post[2:, :] = multivariate_normal(p_mean, p_cov, X.shape[1]).T
  
-        for i, x in enumerate(self.x_post[2:, :].T):
+        for i, x in enumerate(self.x_post[2:, :].T): #iterate over all parameter post estimat.
+            # resample any particle parameters (alpha,beta) 
             if x.any() < 0:
                 while True:
                     new = multivariate_normal(p_mean, p_cov, 1).T
-                    if new.all() > 0 and new[0, 1] > new[0, 2]:
+                    if new.all() > 0  and new[0, 1] > new[0, 2]:
                         self.x_post[2:, i] = new
                         break
         
@@ -121,7 +123,7 @@ class SIR(BaseSIR):
 
             self.epochs = params.get('epochs', 52)
             self.epoch = params.get('epoch', 0)
-        print('n epochs',self.epochs,'refit',refit)
+        print('n epochs',self.epochs,'epoch',self.epoch,'refit',refit)
         self.init_i = float(params.get('init_i', self.i))
         self.set_init_i(self.init_i)
         self.score = 0.0
@@ -195,7 +197,7 @@ class SIR(BaseSIR):
         V = Cov.copy()
         W = eye(num_obs, dtype=data_type) * 0.0001
         
-        self.filter = KalmanFilter(num_states, num_obs, A, B, V, W, Cov)
+        #self.filter = KalmanFilter(num_states, num_obs, A, B, V, W, Cov)
     
     def construct_B(self, with_param=False):
         B = as_matrix([0, 1, 0, 0]) if with_param else as_matrx([0, 1])
@@ -267,7 +269,7 @@ class ParticleSIR(SIR):
             for j in range(self.num_enbs):
                 self.current_Ss[j] = self.check_bounds(x_post[0, j])
                 self.current_Is[j] = self.check_bounds(x_post[1, j])
-                self.alphas[j] = self.check_bounds(x_post[2, j]) #, inf)
+                self.alphas[j] = self.check_bounds(x_post[2, j])#, inf)    # self.check_bounds(x_post[2, j]) #, inf)
                 self.betas[j] = self.check_bounds(x_post[3, j])#, inf)
                 #print(self.alphas)
 
