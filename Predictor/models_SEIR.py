@@ -26,7 +26,7 @@ class ParticleFilter(object):
         states = X[:2, :]
         params = X[2:, :]
         print('A1',X[index].A1.shape)
-        s_std = std(X[index].A1)
+        s_std = std(X[index].A1) 
         
         tmp_ws = as_array([norm.pdf(y, x[0, index], s_std) for x in states.T])
         n_weights = self.weights * tmp_ws
@@ -65,19 +65,38 @@ class ParticleFilter(object):
 
 
 
-class BaseSIR(object):
+class BaseSEIR(object):
     '''The abstract base for the SIR model and its variant models'''
     def __init__(self, params):
         init_i = float(params.get('init_i', 0.0))
+        # get init_i as float from the params, if it does not exist bring 0.0 as it's value
+        
         self.set_init_i(init_i)
+        #Setup
+            #Initial i as init_i
+            #Initial e as (1-i)*gamma 
+            #Initial s as 1 - (i+e)
+            
+            #Set self.Is value as i
+            #Set self.Ss value as s
+            
         
         self.epoch = 0
+        #Start the epoch as 0
+        
         self.epochs = params.get('epochs', 52)
+        #Get the epochs from the parameters, with there is no value epochs = 52
+        
         print('initialize BaseSIR')
         self.fit(params, True)
+        #Pass
         
-
+        
+        
     def check_bounds(self, x, low_bnd=0, up_bnd=1):
+        """Check bounds is used to check if a value x is between 0 and 1, 
+        if it is greater or smaller, defines it's value as the upper or
+        lower limit"""
         if x < low_bnd: 
             x = 0.0
         elif x > up_bnd: 
@@ -89,9 +108,14 @@ class BaseSIR(object):
 
     def set_init_i(self, i, s=inf):
         self.i = float(i)
-        self.s = 1 - i if float(s) is inf else i 
+        iinv = 1 - self.i
+        self.e = iinv*params['gamma']
+        self.s = 1 - (i + self.e) if float(s) is inf else i
+
         self.Is = [self.i]
+        self.Es = [self.e]
         self.Ss = [self.s]
+
 
 class SIR(BaseSIR):
     '''The SIR model'''
@@ -147,7 +171,8 @@ class SIR(BaseSIR):
 
         self.s = self.check_bounds(self.s)
         self.i = self.check_bounds(self.i)
-
+        """We will need to add an Self.Es here... study the best way.."""
+        
         self.Is.append(self.i)
         self.Ss.append(self.s)
 
@@ -174,8 +199,11 @@ class SIR(BaseSIR):
     def _delta_s(self):
         return - self.alpha * self.s * self.i 
 
+    """Insert def _delta_e(self): #here"""
+    
     def _delta_i(self):
         return self.alpha * self.s * self.i - self.beta * self.i
+    
 
     def get_score(self):
         self.outcome = [x for _, x in enumerate(self.Is)]

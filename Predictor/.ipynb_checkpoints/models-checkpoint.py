@@ -26,7 +26,7 @@ class ParticleFilter(object):
         states = X[:2, :]
         params = X[2:, :]
         print('A1',X[index].A1.shape)
-        s_std = std(X[index].A1)
+        s_std = std(X[index].A1) 
         
         tmp_ws = as_array([norm.pdf(y, x[0, index], s_std) for x in states.T])
         n_weights = self.weights * tmp_ws
@@ -39,8 +39,8 @@ class ParticleFilter(object):
             print('index',index,'resamples')
             idx = choice(range(X.shape[1]), X.shape[1], p=self.weights)
             self.weights = tile(as_array(1.0 / self.num_part), self.num_part)
-            self.x_post = X[:, idx]
             
+            self.x_post = X[:, idx]
         else:
             self.x_post = X
             self.weights = n_weights
@@ -123,7 +123,6 @@ class SIR(BaseSIR):
 
             self.epochs = params.get('epochs', 52)
             self.epoch = params.get('epoch', 0)
-            
         print('n epochs',self.epochs,'epoch',self.epoch,'refit',refit)
         self.init_i = float(params.get('init_i', self.i))
         self.set_init_i(self.init_i)
